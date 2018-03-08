@@ -8,6 +8,7 @@ before_script:
  # - npm install -g gulp
   - cd blog 
   - npm install -g hexo-cli
+  - npm install -g hexo
 
 script:
   - hexo clean
