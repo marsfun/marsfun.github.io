@@ -23,7 +23,7 @@ after_script:
 
 branches:
   only:
-    - blog-source
+    - gh-pages
 env:
  global:
    - GH_REF: github.com/marsfun/marsfun.github.io.git
