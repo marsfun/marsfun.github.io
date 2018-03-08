@@ -1,3 +1,12 @@
+---
+title: minikube启动问题
+date: 
+categories: 
+- 技术
+- 问题解决
+tag: [minikube]
+---
+
 # minikube 版本说明
 
 - 当前2018-03 好用的版本为 0.24.0
@@ -73,9 +82,6 @@ docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-controller-
 docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/etcd-amd64:3.0.17
 
 #docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/tiller:v2.8.1
-
-
-
 
 docker tag registry.cn-hangzhou.aliyuncs.com/google-containers/pause-amd64:3.0 k8s.gcr.io/pause-amd64:3.0
 docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.5 k8s.gcr.io/k8s-dns-dnsmasq-nanny-amd64:1.14.5

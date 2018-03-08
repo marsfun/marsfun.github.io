@@ -1,3 +1,11 @@
+---
+title: minikube编译
+date: 
+categories: 
+- 技术
+- 问题解决
+tag: [minikube,hack]
+---
 ### 由于GFW的缘故，minikube 使用很不方便，可以通过修改minikube源码中的镜像地址，重新编译生成可执行文件。
 ---
 注意事项
@@ -20,6 +28,5 @@
     - gcr.io/google-containers/
 
         替换为  registry.cn-hangzhou.aliyuncs.com/google_containers/
-
 
 3. make cross

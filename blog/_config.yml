@@ -55,7 +55,15 @@ index_generator:
 # Category & Tag
 default_category: uncategorized
 category_map:
+  - 标签: categories
+  - 技术: code
+  - 研究: research
+  - 问题解决: problem
 tag_map:
+  - 大数据: bigdata
+  - minikube: minikube
+  - hack: hack
+
 
 # Date / Time format
 ## Hexo uses Moment.js to parse and display date

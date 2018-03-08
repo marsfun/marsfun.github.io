@@ -1,5 +1,11 @@
-QJM方式实现HDFS HA
-
+---
+title: QJM方式实现HDFS HA
+date: 
+categories: 
+- 技术
+- 研究
+tag: [大数据,Hadoop-HA]
+---
 ## 注意 journalnode 存储edits，个数为奇数个,如：3、5个  
 - zkfc 作为自动namenode切换的辅助管理进程，手工切换可以不用zkfc  
 - zkfc 也可能有brain-split，只能设置 sshfence 尽量避免。
