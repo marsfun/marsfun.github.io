@@ -6,10 +6,10 @@ install:
   - npm install 
 before_script:
  # - npm install -g gulp
+  - cd blog 
   - npm install -g hexo-cli
 
 script:
-  - cd blog 
   - hexo clean
   - hexo generate
 
