@@ -3,12 +3,15 @@ node_js: stable
 
 # S: Build Lifecycle
 install:
-  - npm install -g hexo-cli
-#before_script:
+  - npm install 
+before_script:
  # - npm install -g gulp
+  - npm install -g hexo-cli
 
 script:
-  - cd blog && hexo generate
+  - cd blog 
+  - hexo clean
+  - hexo generate
 
 after_script:
   - cd ./public
