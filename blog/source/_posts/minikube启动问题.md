@@ -1,6 +1,6 @@
 ---
 title: minikube启动问题
-date: 
+date: 2018-03-09 11:10:00
 categories: 
 - 技术
 - 问题解决

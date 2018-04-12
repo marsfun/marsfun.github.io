@@ -1,6 +1,6 @@
 ---
 title: minikube dns解析不正确 v0.25.2 
-date: 
+date: 2018-04-02 19:10:00
 categories: 
 - 技术
 - 问题解决
