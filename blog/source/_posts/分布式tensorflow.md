@@ -12,10 +12,10 @@ tag: [grpc,机器学习]
 * 单机使用
  
     [image not found...(分布式tensorflow/tf-device.png)]
-    
+
     123
 
-    {% asset_img 分布式tensorflow/tf-device.png 这是一个图片的说明 %}
+    {% asset_img tf-device.png 这是一个图片的说明 %}
 
 * 多机使用
  
