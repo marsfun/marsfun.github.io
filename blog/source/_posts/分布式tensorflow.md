@@ -17,7 +17,7 @@ tag: [grpc,机器学习]
  
     <!-- ![distribute](分布式tensorflow/tf-device-multiserver.png) -->
     {% asset_img tf-device-multiserver.png tf-device-multiserver.png %}
-
+<!-- more -->
 ### 分布式架构下的管理方式，通过两个不同职责的进程PS 和 Worker 进行分工计算。
 * 
     <!-- ![distribute](分布式tensorflow/distribute.png) -->
@@ -97,3 +97,4 @@ tag: [grpc,机器学习]
     <!-- !["in-graph image"](分布式tensorflow/cluster-ps.png) -->
     {% asset_img cluster-ps.png cluster-ps.png %}
 
+#### ref: http://lynnapan.github.io/2017/09/04/distributed%20tensorflow/
