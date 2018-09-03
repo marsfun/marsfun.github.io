@@ -64,7 +64,7 @@ tag: [grpc,机器学习]
     * Partitioned variables
 
     以上讨论的都是很小字节的参数，每个PS task都可以单独处理一个变量。但当遇到超大字节，比如可能是几万MB的数据该如何处理？要解决这个问题，提出一个分割变量的方法。假设你用分隔符创建了一个变量，tensorflow会把这个变量分割成3个部分，分发到3个PS task中。
-    !["in-graph image"](分布式tensorflow/parted_v.png)
+    <!-- !["in-graph image"](分布式tensorflow/parted_v.png) -->
     {% asset_img parted_v.png parted_v.png %}
 
 ### 如何跑分布式的计算
