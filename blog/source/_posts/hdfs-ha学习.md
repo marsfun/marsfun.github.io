@@ -17,7 +17,7 @@ tag: [大数据,Hadoop-HA]
 hadoop-daemon.sh start journalnode
 ```
 - num: odd 部署奇数个
-### 2. format primary namenode and start it. (e.g. nn1) 
+### 2. format primary namenode and start it. (e.g. nn1)
 ```bash 
 hdfs namenode -format  
 ```
