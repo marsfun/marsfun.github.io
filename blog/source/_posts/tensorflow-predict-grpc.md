@@ -19,8 +19,6 @@ lables = r.outputs['labels'].string_val
 
 * 注意点 2- 异常捕获
         
-    * code = UNAVAILABLE 时，一般多是请求的地址有误，如端口错误，signature 错误等.
-
 ```python
 try:
     r = classify(path + filename, server, port, timeout)
@@ -32,3 +30,4 @@ except Exception as err:
     status = 'error'
     msg = 'grpc error: ' + err.code()
 ```
+* code = UNAVAILABLE 时，一般多是请求的地址有误，如端口错误，signature 错误等.
