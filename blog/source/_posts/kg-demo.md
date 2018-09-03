@@ -11,7 +11,7 @@ tag: [知识图谱 ]
 1）实现思路是将知识内容，以知识图谱的概念梳理成 subject predicate object   ，将数据索引在es中。
 2）通过kibana graph 进行数据相关性查询以及展示。
 3）可以对实体进行下钻查看。
-
+<!-- more -->
 【demo 地址】：https://github.com/marsfun/elk-graphsearch
 
 基于golang 的开源图数据库Cayley , Cayley is an open-source graph inspired by the graph database behind Freebase and Google's Knowledge Graph.

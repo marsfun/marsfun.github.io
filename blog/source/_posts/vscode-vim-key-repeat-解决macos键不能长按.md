@@ -9,7 +9,7 @@ tag: [vscode vim]
 
 ### MacOS Vscode 中vim 无法长按键的问题
 ***
-命令行执行以下命令
+命令行执行以下命令
 
 ```
 defaults write com.microsoft.VSCode ApplePressAndHoldEnabled -bool false         # For VS Code

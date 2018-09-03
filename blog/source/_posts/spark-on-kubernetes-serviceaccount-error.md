@@ -22,7 +22,7 @@ bin/spark-submit \
 
     --jars local:///opt/spark/examples/jars/spark-examples_2.11-2.3.0.jar \
 ```
-
+<!-- more -->
  is forbidden: User "system:serviceaccount:default:default" cannot get pods in the namespace "default"
 解决:
 1）

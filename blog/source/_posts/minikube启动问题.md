@@ -23,6 +23,8 @@ tag: [minikube]
 - gcr.io/google_containers/pause-amd64:3.0
 - gcr.io/google-containers/kube-addon-manager:v6.4-beta.2
 - gcr.io/k8s-minikube/storage-provisioner:v1.8.0
+<!-- more -->
+
 ```bash
 
 docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/storage-provisioner:v1.8.0 

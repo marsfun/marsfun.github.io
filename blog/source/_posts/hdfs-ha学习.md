@@ -6,8 +6,8 @@ categories:
 - 研究
 tag: [大数据,Hadoop-HA]
 ---
-## 注意 journalnode 存储edits，个数为奇数个,如：3、5个  
-- zkfc 作为自动namenode切换的辅助管理进程，手工切换可以不用zkfc  
+## 注意 journalnode 存储edits，个数为奇数个,如：3、5个  
+- zkfc 作为自动namenode切换的辅助管理进程，手工切换可以不用zkfc  
 - zkfc 也可能有brain-split，只能设置 sshfence 尽量避免。
 
 
@@ -21,7 +21,7 @@ hadoop-daemon.sh start journalnode
 ```bash 
 hdfs namenode -format  
 ```
-已经存在数据，会提示“是否re-format”
+已经存在数据，会提示“是否re-format”
 ```bash
 hadoop-daemon.sh --script hdfs start namenode
 ```
@@ -29,8 +29,8 @@ hadoop-daemon.sh --script hdfs start namenode
 ```bash
 hdfs namenode -bootstrapStandby  
 ```
-
-已经存在数据，会提示“是否re-format”
+<!-- more -->
+已经存在数据，会提示“是否re-format”
 
 ```bash
 hadoop-daemon.sh --script hdfs start namenode

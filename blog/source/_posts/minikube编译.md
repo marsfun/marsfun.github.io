@@ -12,8 +12,8 @@ tag: [minikube,hack]
 
 1. 编译环境使用linux，  macos下编译有问题。
 
-2. 找个批量ide进行替换，参考以下对应的替换字符串
-
+2. 找个批量ide进行替换，参考以下对应的替换字符串
+<!-- more -->
     -  gcr.io/k8s-minikube/ 
 
         替换为  registry.cn-hangzhou.aliyuncs.com/google_containers/
