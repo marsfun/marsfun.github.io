@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title><![CDATA[minikube 代理设置 以及问题解决[0.3.0]]]></title>
+    <url>%2F2018%2F10%2F20%2Fminikube-howto-0-3-0%2F</url>
+    <content type="text"><![CDATA[1. 设置 minikube 使用本机代理，实现对google镜像拉取将本机的代理，暴露给minikube，让docker容器内可以访问本机的代理。由于shadowsocks默认代理的ip为127.0.0.1，需要改下ip地址才能让容器内的应用识别。 1） 设置shadowsocks 将HTTP代理监听的IP 由 localhost/127.0.0.1 改为 0.0.0.0 在本地网卡的lo0接口上，给127.0.0.1 增加别名,命令如下：1sudo ifconfig lo0 alias 111.111.111.111 2） minikube 启动命令加入参数1minikube start --vm-driver hyperkit --docker-env http_proxy=http://111.111.111.111:1087 --docker-env https_proxy=http://111.111.111.111:1087 -v 9 2. 解决 minikube在系统重启或者 minikube stop后，再次minikube start时，无法启动的问题。 问题现象 123456789→ minikube start -v 9...&amp;&#123;&#123;&#123;&lt;nil&gt; 0 [] [] []&#125; docker [0x140f940] 0x140f910 [] 0s&#125; 192.168.65.78 22 &lt;nil&gt; &lt;nil&gt;&#125;About to run SSH command:cat /etc/os-releaseError dialing TCP: dial tcp 192.168.65.78:22: connect: operation timed outError dialing TCP: dial tcp 192.168.65.78:22: connect: operation timed outError dialing TCP: dial tcp 192.168.65.78:22: connect: operation timed out 解决方法 1rm ~/.minikube/machines/minikube/hyperkit.pid]]></content>
+      <categories>
+        <category>技术</category>
+        <category>问题解决</category>
+      </categories>
+      <tags>
+        <tag>minikube</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[分布式tensorflow]]></title>
+    <url>%2F2018%2F09%2F03%2F%E5%88%86%E5%B8%83%E5%BC%8Ftensorflow%2F</url>
+    <content type="text"><![CDATA[tensorflow 通过device来管理CPU和GPU 单机使用 多机使用 分布式架构下的管理方式，通过两个不同职责的进程PS 和 Worker 进行分工计算。 Parameter Server：PS负责保存和更新所有的模型状态，即参数信息。根据梯度信息更新参数。Worker replicas ：worker主要做计算，处理神经网络中的loss 和梯度 tensorflow分布下模型复制的方式 In-graph replication 早期常用的一种，图内复制方式. 主要步骤为： 将参数设置在 PS device上， 并将训练数据分成几份，在循环内发送到GPU 设备上（worker） 把各个worker计算的结果收集后，合成最后的loss。 少量数据和节点时使用。 Between-graph replication 图间复制是每个worker上跑一小部分计算图，参数放在PS上，其他数据则放在本地。中间的PS Task上会共享变量，提供给Worker Task 使用，变量对所有worker task 可见。 这种变量共享设计就带来另外一个问题：我们如何选择地址来放置我们的变量？因为上一个例子中只有一个PS task,这样把所有的变量用设备字都放置在一个固定设备中固然可行，但有时我们想要实现多于1个的PS task时候怎么办呢？比如我们想要分配变量更新的工作，或者想平衡worker task来取变量时候的网络负载时，很可能就要用到多个PS任务了。接下来就讨论一下变量的放置问题。 根据参数放置设备（Device placement for Variables） 使用设备函数，可以不直接指定具体的tf.device设备，tensorflow内置了几个策略函数。 Round-robin variables 最简单的一个方法叫tf_train_replica_device_setter方法，它会循环地分配变量，就像创建PS的时候。这个设备函数的优点是，你可以把整个模型建模代码用这个模块包起来。它只影响变量，把它们放在PS任务中，而其他的工作会自动到worker中执行。 如下图所示，这个程序会把第一个weight权重变量被放在到PS task0，第一个bias偏置变量被放置到PS task1, 接下来第二个weight被放置到PS task2，最后一个回来放到task0中。 Load balancing variables 有一个简单的贪婪策略叫GreedyLoadBalancingStrategy, 它可以根据参数的内存字节来完成类似在线垃圾收集的工作。根据weight和bias的字节数来放置到内存合适的task中，带来更好的负载平衡。 Partitioned variables 以上讨论的都是很小字节的参数，每个PS task都可以单独处理一个变量。但当遇到超大字节，比如可能是几万MB的数据该如何处理？要解决这个问题，提出一个分割变量的方法。假设你用分隔符创建了一个变量，tensorflow会把这个变量分割成3个部分，分发到3个PS task中。 如何跑分布式的计算 tf.Session 只能管理到本地的资源 完成了资源配置后，我们就要开始继续run一个tensorflow的session了。如果你使用以下的代码来运行一个tensorflow的session, tf.Session只能知道本地机器的资源设备。 tf.train.Server 负责多机器之间训练通信 如何多台机器，tf.session则无能为力，需要通过tf.train.server 建立一个集群，进行训练。 通过ClusterSpec方式 实现 PS 和Worker 的代码片段 worker snippet 定义一个ClusterSpec, 用于定义一个集群中的PS， worker分别对应的是哪些机器。这样手动输入很容易出错，所以我们还可以用kubernetes或Mesos这些集群管理框架来管理。后面会出一篇tensorflow on k8s的文章； 然后创建一个tensorflow Server，它代表集群里的一个特定任务 最后创建一个Session，一个session可以在集群中的任何一个设备上运行代码。 ps snippet 定义一个ClusterSpec； 然后创建一个tensorflow Server，它代表集群里的一个特定任务 最后server.join() ref: http://lynnapan.github.io/2017/09/04/distributed%20tensorflow/]]></content>
+      <categories>
+        <category>技术</category>
+        <category>tensorflow</category>
+      </categories>
+      <tags>
+        <tag>grpc</tag>
+        <tag>机器学习</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[tensorflow-predict-grpc]]></title>
+    <url>%2F2018%2F08%2F23%2Ftensorflow-predict-grpc%2F</url>
+    <content type="text"><![CDATA[client通过 grpc 调用tensorflow-serving 注意点 1- 返回数据的解析 12scores = r.outputs['scores'].float_vallables = r.outputs['labels'].string_val 注意点 2- 异常捕获 123456789try: r = classify(path + filename, server, port, timeout)except grpc.RpcError as err: status = 'error' if err.code() == grpc.StatusCode.UNAVAILABLE: msg = 'connect failed.'except Exception as err: status = 'error' msg = 'grpc error: ' + err.code() code = UNAVAILABLE 时，一般多是请求的地址有误，如端口错误，signature 错误等.]]></content>
+      <categories>
+        <category>技术</category>
+        <category>tensorflow</category>
+      </categories>
+      <tags>
+        <tag>grpc</tag>
+        <tag>机器学习</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[vscode vim key repeat(解决macos键不能长按)]]></title>
+    <url>%2F2018%2F08%2F12%2Fvscode-vim-key-repeat-%E8%A7%A3%E5%86%B3macos%E9%94%AE%E4%B8%8D%E8%83%BD%E9%95%BF%E6%8C%89%2F</url>
+    <content type="text"><![CDATA[MacOS Vscode 中vim 无法长按键的问题 命令行执行以下命令 123defaults write com.microsoft.VSCode ApplePressAndHoldEnabled -bool false # For VS Code$ defaults write com.microsoft.VSCodeInsiders ApplePressAndHoldEnabled -bool false # For VS Code Insider$ defaults delete -g ApplePressAndHoldEnabled # If necessary, reset global default 重启 vscode]]></content>
+      <categories>
+        <category>vscode</category>
+        <category>macos</category>
+      </categories>
+      <tags>
+        <tag>vscode vim</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[kownledge graph demo]]></title>
+    <url>%2F2018%2F08%2F07%2Fkg-demo%2F</url>
+    <content type="text"><![CDATA[基于elasticsearch ， kibana 知识图谱查询的例子。1）实现思路是将知识内容，以知识图谱的概念梳理成 subject predicate object ，将数据索引在es中。2）通过kibana graph 进行数据相关性查询以及展示。3）可以对实体进行下钻查看。 【demo 地址】：https://github.com/marsfun/elk-graphsearch 基于golang 的开源图数据库CayleyCayley is an open-source graph inspired by the graph database behind Freebase and Google’s Knowledge Graph.主要是基于标准图数据库方式对数据进行存储和查询。相比于Neo4j 部分功能需要授权使用来说，Cayley是完全开源。 后端支持es存储等多种存储方式，具体feature如下： 【demo地址】：https://github.com/marsfun/cayley-graph Lambda³ - 基于自然语言分析模型 与 ES 实现的 knowledge graph 系统官方描述 ： StarGraph (aka *graph) is a graph database to query large Knowledge Graphs. Playing with Knowledge Graphs can be useful if you are developing AI applications or doing data analysis over complex domains. 主要有以下部分构成： Indra： 模型训练及服务组件 提供的模型有 w2v ，dep ，esa ，lsa stargraph： 负责图数据存储及相关查询转换逻辑 底层使用jena 存储 corenlp：自然语言处理 es：进行数据的索引 【官方docker-compose 地址】：https://github.com/Lambda-3/Stargraph]]></content>
+      <categories>
+        <category>技术</category>
+        <category>研究</category>
+      </categories>
+      <tags>
+        <tag>知识图谱</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[understand-roc-curve]]></title>
+    <url>%2F2018%2F07%2F12%2Funderstand-roc-curve%2F</url>
+    <content type="text"><![CDATA[理解ROC曲线 通过二分类问题来理解 1.有一组图片测试集，包含了飞机和大雁。希望构建一个分类器来识别出飞机的图片。（首先明确分类器的目的，是识别飞机！） 分类目标 叫做 正样本 positives 就是这里的飞机； 负样本 negatives 就是这里的大雁。 识别的结果穷举如下： 类型 描述 真阳 识别是飞机， 真实是飞机 假阳 识别是飞机， 真实是大雁 真阴 认为是大雁， 真实是大雁 假阴 认为是大雁， 真实是飞机 引出 precision 和recall 的定义 precision = TP/(TP+FP) ， 在所有被识别出的飞机中，真正是飞机的所占的比例，即使准确率。 recall = TP/(TP+FN) , 识别出的飞机，比上所有的飞机数，就是召回率。所有的飞机包括 真阳值 + 假阴值。 召回率的翻译太难理解，差评！！ 可以叫查全率 理解AUC曲线 ROC曲线与X轴围成的图形面积可以作为一个综合衡量指标，即AUC（Area Under Curve，曲线下面积）。AUC越大，曲线就越凸，分类器的效果也就越好。]]></content>
+      <categories>
+        <category>技术</category>
+        <category>研究</category>
+      </categories>
+      <tags>
+        <tag>机器学习</tag>
+        <tag>算法</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[spark-on-kubernetes_serviceaccount_error]]></title>
+    <url>%2F2018%2F04%2F26%2Fspark-on-kubernetes-serviceaccount-error%2F</url>
+    <content type="text"><![CDATA[使用spark-2.3.0 版本，在k8s 1.9 上测试。 1234567891011bin/spark-submit \ --master k8s://https://10.0.1.4:6443 \ --deploy-mode cluster \ --name spark-pi \ --class org.apache.spark.examples.SparkPi \ --conf spark.executor.instances=5 \ --conf spark.kubernetes.container.image=10.0.1.4:5000/spark:v2.3.0 \ --conf spark.kubernetes.authenticate.driver.serviceAccountName=spark \ local:///opt/spark/examples/jars/spark-examples_2.11-2.3.0.jar --jars local:///opt/spark/examples/jars/spark-examples_2.11-2.3.0.jar \ is forbidden: User “system:serviceaccount:default:default” cannot get pods in the namespace “default”解决:1）12kubectl create serviceaccount sparkkubectl create clusterrolebinding spark-role --clusterrole=edit --serviceaccount=default:spark --namespace=default 2）命令参数增加 –conf spark.kubernetes.authenticate.driver.serviceAccountName=spark]]></content>
+      <categories>
+        <category>技术</category>
+        <category>问题解决</category>
+      </categories>
+      <tags>
+        <tag>kubernetes</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[use kcptun 加速]]></title>
+    <url>%2F2018%2F04%2F12%2Fuse-kcptun-%E5%8A%A0%E9%80%9F%2F</url>
+    <content type="text"><![CDATA[总体思路KcpTun 区别于bbr 等其他单边加速的方案，它需要同时安装服务端和客户端来使用。12345服务端shadowsocks 客户端shadowsocks | | |------&gt; 服务端KcpTun 客户端KcpTun-------&gt;| | | |----------------------&gt;| 使用脚本安装KcpTun 服务端https://github.com/kuoruan/shell-scripts/blob/master/kcptun/kcptun.sh 客户端使用shadowsocksX-NG 启用kcptun即可。配置参数注意：服务端 rcvwnd sndwnd 与客户端的这两个设置建议相同，即 server-rvcwnd == client-sndwnd （未验证，安装时用了默认值）基本参数的理解mode选择对速度的影响效果 fast3 &gt; [fast2] &gt; fast &gt; normal &gt; default速度越快，越费流量 tuning可以简单计算一下 是否达到了自己adsl的带宽上限。12345678910111213141516171819202122带宽计算公式：在不丢包的情况下，有最大-rcvwnd 个数据包在网络上正在向你传输，以平均数据包大小avgsize计算，在任意时刻，有：network_cap = rcvwnd*avgsize数据流向你，这个值再除以ping值(rtt)，等于最大带宽使用量。max_bandwidth = network_cap/rtt = rcvwnd*avgsize/rtt&lt;!-- more --&gt;举例，设rcvwnd = 1024, avgsize = 1KB, rtt = 400ms，则：max_bandwidth = 1024 * 1KB / 400ms = 2.5MB/s ~= 25Mbps（注：以上计算不包括前向纠错的数据量）前向纠错是最大带宽量的一个固定比例增加：max_bandwidth_fec = max_bandwidth*(datashard+parityshard)/datashard举例，设datashard = 10 , partiyshard = 3，则：max_bandwidth_fec = max_bandwidth * (10 + 3) /10 = 1.3*max_bandwidth ＝ 1.3 * 25Mbps = 32.5Mbps ps：用ping 命令查rtt123--- XXXXXXXX ping statistics ---3 packets transmitted, 3 packets received, 0.0% packet lossround-trip min/avg/max/stddev = 262.543/41.140/427.469/67.552 ms]]></content>
+      <categories>
+        <category>技术</category>
+        <category>Helper</category>
+      </categories>
+      <tags>
+        <tag>KcpTun VPN 加速 youtube</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[minikube dns解析不正确 v0.25.2]]></title>
+    <url>%2F2018%2F04%2F02%2Fminikube-dockerpull%2F</url>
+    <content type="text"><![CDATA[minikube 下 docker pull 遇到如下问题，本质是无法docker hub。可以在启动minikube时 设置 register-mirror 解决.`bash$ docker pull busyboxUsing default tag: latestlatest: Pulling from library/busyboxd070b8ef96fc: Pulling fs layererror pulling image configuration: Get https://dseasb33srnrn.cloudfront.net/registry-v2/docker/registry/v2/blobs/sha256/f6/f6e427c148a766d2d6c117d67359a0aa7d133b5bc05830a7ff6e8b64ff6b1d1d/data?Expires=1522710550&amp;Signature=SVHVIzKYGemU72iOB1q-XVUtQ0ik7sVLmntzXseV2ih-RpN88Bg4J0E4QkSndDIFlhCODS2A8fFVaAxTEVrzIkfe6ihcT7i2lkT9KAsvj2JHFC7cOBckBHZQB-RncaTwnK2ygWRUqXqDcsSjXUuzXeWPXxtYLrakl7n2uR3ENXE_&amp;Key-Pair-Id=APKAJECH5M7VWIS5YZ6Q: net/http: TLS handshake timeout$ exitlogout `bash 解决 minikube start –vm-driver=xhyve –registry-mirror=https://registry.docker-cn.com -v 7 ** 另外 minikube v0.25.2 已经可以正确下载localkube 所需的 image镜像.]]></content>
+      <categories>
+        <category>技术</category>
+        <category>问题解决</category>
+      </categories>
+      <tags>
+        <tag>minikube</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[星环TDH安装]]></title>
+    <url>%2F2018%2F03%2F12%2F%E6%98%9F%E7%8E%AFTDH%E8%AE%B0%E5%BD%95%2F</url>
+    <content type="text"><![CDATA[资料 文档集合 https://docs.transwarp.cn/5.1/ sdk使用样例 http://support.transwarp.cn/t/sdk-maven-tdh-repository/546 安装 虚拟机也可以安装！！！ 注意根据版本不同 需要对docker分区做不同的处理。（建立pv/vgs 不分区 或 做好 xfs 分区。看文档！！ ） 集群不能在界面上删除，比起cloudera 不方便。（找售后支持要脚本！！） 概念 TDH 本身采用spark作为计算引擎，对外不提供命令操作接口 集群交互方式有两种 采用THD的client客户端（从集群管理页面下载） 进入datanode pod 执行hdfs 相关命令 TDH pod按照容器的角色进行了细分 data/yarn/nodenode/等 体验 从apache或原生的发型版转来，会感觉束手束脚，TDH采取半开放的方式提供api操作，与之前的体验差别较大。 另一方面，由于基于k8s的缘故所有的客户端操作实际需要与容器打通，也带来与物理集群操作方面的不同体验。（虽然还没有试用客户端，但可以想象基于k8s后，TDH这种交互也是一种必然的方式）]]></content>
+      <categories>
+        <category>技术</category>
+        <category>研究</category>
+      </categories>
+      <tags>
+        <tag>bigdata TDH 星环</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[minikube编译]]></title>
+    <url>%2F2018%2F03%2F09%2Fminikube%E7%BC%96%E8%AF%91%2F</url>
+    <content type="text"><![CDATA[由于GFW的缘故，minikube 使用很不方便，可以通过修改minikube源码中的镜像地址，重新编译生成可执行文件。 注意事项 编译环境使用linux， macos下编译有问题。 找个批量ide进行替换，参考以下对应的替换字符串 gcr.io/k8s-minikube/ 替换为 registry.cn-hangzhou.aliyuncs.com/google_containers/ k8s.gcr.io/ 替换为 registry.cn-hangzhou.aliyuncs.com/google_containers/ gcr.io/google_containers/ 替换为 registry.cn-hangzhou.aliyuncs.com/google_containers/ gcr.io/google-containers/ 替换为 registry.cn-hangzhou.aliyuncs.com/google_containers/ make cross]]></content>
+      <categories>
+        <category>技术</category>
+        <category>问题解决</category>
+      </categories>
+      <tags>
+        <tag>minikube</tag>
+        <tag>hack</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[minikube启动问题]]></title>
+    <url>%2F2018%2F03%2F09%2Fminikube%E5%90%AF%E5%8A%A8%E9%97%AE%E9%A2%98%2F</url>
+    <content type="text"><![CDATA[minikube 版本说明 当前2018-03 好用的版本为 0.24.0 0.24.1 0.25.0 存在bug，启动后healthz 检查失败 ，此外 以docker tag 更换镜像的方式无法 启动 google addons等容器。 一般情况下 minkube启动后，容器创建不成功”containercreating” 都是镜像在墙外拉不下来的缘故。 0.24.0版本 从aliyun 拉取 相应的镜像，以及tag 命令 用到的镜像 gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.5 gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.5 gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.5 gcr.io/google_containers/kubernetes-dashboard-amd64:v1.6.3 gcr.io/google_containers/pause-amd64:3.0 gcr.io/google-containers/kube-addon-manager:v6.4-beta.2 gcr.io/k8s-minikube/storage-provisioner:v1.8.0 12345678910111213141516docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/storage-provisioner:v1.8.0 docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-kube-dns-amd64:1.14.5docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-sidecar-amd64:1.14.5docker pull registry.cn-hangzhou.aliyuncs.com/google-containers/pause-amd64:3.0docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.5docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-addon-manager:v6.4-beta.2docker pull registry.cn-hangzhou.aliyuncs.com/google-containers/kubernetes-dashboard-amd64:v1.6.3docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/storage-provisioner:v1.8.0 gcr.io/k8s-minikube/storage-provisioner:v1.8.0docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-kube-dns-amd64:1.14.5 gcr.io/google_containers/k8s-dns-kube-dns-amd64:1.14.5docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-sidecar-amd64:1.14.5 gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.5docker tag registry.cn-hangzhou.aliyuncs.com/google-containers/pause-amd64:3.0 gcr.io/google_containers/pause-amd64:3.0docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.5 gcr.io/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.5docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/kube-addon-manager:v6.4-beta.2 gcr.io/google-containers/kube-addon-manager:v6.4-beta.2docker tag registry.cn-hangzhou.aliyuncs.com/google-containers/kubernetes-dashboard-amd64:v1.6.3 gcr.io/google_containers/kubernetes-dashboard-amd64:v1.6.3 手工给minikube 生成cache 123456789101112minikube cache add k8s.gcr.io/pause-amd64:3.0 minikube cache add k8s.gcr.io/k8s-dns-dnsmasq-nanny-amd64:1.14.5minikube cache add k8s.gcr.io/k8s-dns-kube-dns-amd64:1.14.5minikube cache add k8s.gcr.io/k8s-dns-sidecar-amd64:1.14.5minikube cache add gcr.io/k8s-minikube/storage-provisioner:v1.8.0minikube cache add gcr.io/google-containers/kube-addon-manager:v6.5minikube cache add k8s.gcr.io/kubernetes-dashboard-amd64:v1.8.1minikube cache add k8s.gcr.io/kube-apiserver-amd64:v1.9.0minikube cache add k8s.gcr.io/kube-scheduler-amd64:v1.9.0minikube cache add k8s.gcr.io/kube-proxy-amd64:v1.9.0minikube cache add k8s.gcr.io/kube-controller-manager-amd64:v1.9.0minikube cache add k8s.gcr.io/etcd-amd64:3.0.17 附 minikube 0.25.0对应的镜像12345678910111213141516171819202122232425262728293031323334353637383940414243docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/storage-provisioner:v1.8.0 docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-kube-dns-amd64:1.14.5docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-sidecar-amd64:1.14.5docker pull registry.cn-hangzhou.aliyuncs.com/google-containers/pause-amd64:3.0docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.5docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-addon-manager:v6.5docker pull registry.cn-hangzhou.aliyuncs.com/kube_containers/kubernetes-dashboard-amd64:v1.8.1docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-apiserver-amd64:v1.9.0docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler-amd64:v1.9.0docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-proxy-amd64:v1.9.0docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/kube-controller-manager-amd64:v1.9.0docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/etcd-amd64:3.0.17#docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/tiller:v2.8.1docker tag registry.cn-hangzhou.aliyuncs.com/google-containers/pause-amd64:3.0 k8s.gcr.io/pause-amd64:3.0docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-dnsmasq-nanny-amd64:1.14.5 k8s.gcr.io/k8s-dns-dnsmasq-nanny-amd64:1.14.5docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-kube-dns-amd64:1.14.5 k8s.gcr.io/k8s-dns-kube-dns-amd64:1.14.5docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/k8s-dns-sidecar-amd64:1.14.5 k8s.gcr.io/k8s-dns-sidecar-amd64:1.14.5docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/storage-provisioner:v1.8.0 gcr.io/k8s-minikube/storage-provisioner:v1.8.0docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/kube-addon-manager:v6.5 gcr.io/google-containers/kube-addon-manager:v6.5docker tag registry.cn-hangzhou.aliyuncs.com/kube_containers/kubernetes-dashboard-amd64:v1.8.1 k8s.gcr.io/kubernetes-dashboard-amd64:v1.8.1docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/kube-apiserver-amd64:v1.9.0 k8s.gcr.io/kube-apiserver-amd64:v1.9.0docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler-amd64:v1.9.0 k8s.gcr.io/kube-scheduler-amd64:v1.9.0docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/kube-proxy-amd64:v1.9.0 k8s.gcr.io/kube-proxy-amd64:v1.9.0docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/kube-controller-manager-amd64:v1.9.0 k8s.gcr.io/kube-controller-manager-amd64:v1.9.0docker tag registry.cn-hangzhou.aliyuncs.com/google_containers/etcd-amd64:3.0.17 k8s.gcr.io/etcd-amd64:3.0.17minikube cache add k8s.gcr.io/pause-amd64:3.0 minikube cache add k8s.gcr.io/k8s-dns-dnsmasq-nanny-amd64:1.14.5minikube cache add k8s.gcr.io/k8s-dns-kube-dns-amd64:1.14.5minikube cache add k8s.gcr.io/k8s-dns-sidecar-amd64:1.14.5minikube cache add gcr.io/k8s-minikube/storage-provisioner:v1.8.0minikube cache add gcr.io/google-containers/kube-addon-manager:v6.5minikube cache add k8s.gcr.io/kubernetes-dashboard-amd64:v1.8.1minikube cache add k8s.gcr.io/kube-apiserver-amd64:v1.9.0minikube cache add k8s.gcr.io/kube-scheduler-amd64:v1.9.0minikube cache add k8s.gcr.io/kube-proxy-amd64:v1.9.0minikube cache add k8s.gcr.io/kube-controller-manager-amd64:v1.9.0minikube cache add k8s.gcr.io/etcd-amd64:3.0.17]]></content>
+      <categories>
+        <category>技术</category>
+        <category>问题解决</category>
+      </categories>
+      <tags>
+        <tag>minikube</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title><![CDATA[QJM方式实现HDFS HA]]></title>
+    <url>%2F2018%2F03%2F09%2Fhdfs-ha%E5%AD%A6%E4%B9%A0%2F</url>
+    <content type="text"><![CDATA[注意 journalnode 存储edits，个数为奇数个,如：3、5个 zkfc 作为自动namenode切换的辅助管理进程，手工切换可以不用zkfc zkfc 也可能有brain-split，只能设置 sshfence 尽量避免。 1. start journalnode on slave nodes1hadoop-daemon.sh start journalnode num: odd 部署奇数个2. format primary namenode and start it. (e.g. nn1)1hdfs namenode -format 已经存在数据，会提示“是否re-format”1hadoop-daemon.sh --script hdfs start namenode 3. sync namenode metadata to nn2 (primary: nn1, standby:nn2)1hdfs namenode -bootstrapStandby 已经存在数据，会提示“是否re-format” 1hadoop-daemon.sh --script hdfs start namenode A. 检测两个namanode 应都是standby12hdfs haadmin -getServiceState nn1hdfs haadmin -getServiceState nn2 4.1. 手工激活namenode 手动激活一个namnode 1hdfs haadmin -transitionToActive nn2 4.2. 自动监控namenode （zkfc） 在任一namenode上执行zk 信息的format命令 1hdfs zkfc -formatZK 在 所有 namenode上启动zkfc监控进程 1hadoop-daemon.sh --script hdfs start zkfc B. 测试namenode failover 在nn1 1kill -9 pid （namenode） 查看 nn1 应该为不可见，nn2为 active 12345hdfs haadmin -getServiceState nn1 hdfs haadmin -getServiceState nn2 yarn rmadmin -getServiceState rm1yarn rmadmin -getServiceState rm2]]></content>
+      <categories>
+        <category>技术</category>
+        <category>研究</category>
+      </categories>
+      <tags>
+        <tag>大数据</tag>
+        <tag>Hadoop-HA</tag>
+      </tags>
+  </entry>
+</search>
